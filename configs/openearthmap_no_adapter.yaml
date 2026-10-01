@@ -1,0 +1,4 @@
+defaults: datasets/openearthmap.yaml
+model:
+  adapter: none
+output: outputs/openearthmap_no_adapter

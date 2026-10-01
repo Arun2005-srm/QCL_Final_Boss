@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+outputs/
+data_local/
+checkpoints/
+cache/
+*.pt
+*.pth
+.env

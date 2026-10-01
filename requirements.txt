@@ -1,0 +1,11 @@
+torch>=2.4,<3
+torchvision>=0.19,<1
+pennylane>=0.40,<0.46
+segment-anything==1.0
+numpy>=1.26,<3
+scipy>=1.11,<2
+scikit-learn>=1.4,<2
+matplotlib>=3.9,<4
+Pillow>=10,<13
+PyYAML>=6,<7
+pytest>=8,<10

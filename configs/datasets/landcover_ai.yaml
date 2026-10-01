@@ -1,0 +1,7 @@
+defaults: ../default.yaml
+dataset:
+  manifest: data_local/landcover_ai/samples.csv
+  classes: [background, building, woodland, water, road]
+  label_map: {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}
+  ignore_values: []
+output: outputs/landcover_ai

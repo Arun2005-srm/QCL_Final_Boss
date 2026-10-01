@@ -1,0 +1,5 @@
+defaults: datasets/openearthmap.yaml
+model:
+  adapter: classical
+  rank: 16
+output: outputs/openearthmap_classical

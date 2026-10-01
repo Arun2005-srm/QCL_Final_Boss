@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.md whitespace=-blank-at-eol
+docs/REVIEWED_SPEC_v1.1.md -text
+docs/REVIEWED_MANIFEST_v1.0.md -text

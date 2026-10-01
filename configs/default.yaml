@@ -1,0 +1,55 @@
+seed: 42
+output: outputs/sam_quantum
+runtime:
+  device: auto
+  amp: true
+  num_workers: 4
+  batch_size: 2
+  eval_batch_size: 2
+  accumulation: 1
+  pin_memory: true
+dataset:
+  manifest: null
+  images: data_local/images
+  masks: data_local/masks
+  image_suffix: ''
+  mask_suffix: ''
+  extensions: [.png, .jpg, .jpeg, .tif, .tiff]
+  classes: [background, foreground]
+  label_map: {0: 0, 255: 1}
+  color_map: null
+  ignore_values: []
+  ignore_index: 255
+  size: 1024
+  split: [0.70, 0.15, 0.15]
+  independent_images: false
+  augment: false
+model:
+  encoder: sam_vit_b
+  checkpoint: checkpoints/sam_vit_b_01ec64.pth
+  adapter: quantum
+  grid: 16
+  rank: 16
+  quantum_chunk: 32
+  entangle: true
+  quantum_device: default.qubit
+  cache_dir: cache/sam_vit_b
+  pca_tokens: 100000
+training:
+  epochs: 200
+  max_updates_per_domain: 2000
+  learning_rate: 0.001
+  quantum_learning_rate: 0.01
+  dice_weight: 0.5
+continual:
+  domains: []
+  replay_mib: 128
+  replay_batch: 2
+  replay_weight: 1.0
+  distill_weight: 0.1
+evaluation:
+  boundary_fraction: 0.02
+  plots: 12
+  sampled_pixels: 20000
+  tsne_points: 2000
+  tsne_perplexity: 30
