@@ -18,6 +18,7 @@ class Record:
     mask: str
     group: str
     domain: str
+    split: str = ""
 
 
 def discover(cfg):
@@ -25,12 +26,42 @@ def discover(cfg):
     records = []
     if c["manifest"]:
         path = Path(c["manifest"]).resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"Manifest not found: {path}. Set dataset.manifest to the existing CSV; paths resolve from the working directory.")
+        columns = {k: k for k in ("id", "image", "mask", "group", "domain", "split")}
+        columns.update(c.get("columns", {}))
+        split_source = c.get("split_source", "generated")
+        if split_source not in {"generated", "manifest"}:
+            raise ValueError("dataset.split_source must be generated or manifest")
         with path.open(newline="", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                if not all(row.get(k) for k in ("id", "image", "mask", "group", "domain")):
-                    raise ValueError("CSV requires nonempty id,image,mask,group,domain")
-                records.append(Record(row["id"], str((path.parent / row["image"]).resolve()),
-                                      str((path.parent / row["mask"]).resolve()), row["group"], row["domain"]))
+            for number, row in enumerate(csv.DictReader(f), 2):
+                values = {k: (row.get(col) or "").strip() for k, col in columns.items()}
+                missing = [columns[k] for k in ("id", "image", "mask", "group") if not values[k]]
+                if missing:
+                    raise ValueError(f"{path}:{number}: missing nonempty columns {missing}; configure dataset.columns")
+                domain = values["domain"]
+                # Prepared OpenEarthMap manifests may omit a domain column and
+                # encode the region in group as "region/source". Use that
+                # prefix when the domain is absent; the config flag also lets
+                # callers require/validate this convention when a domain is
+                # explicitly supplied.
+                if c.get("domain_from_group_prefix", False) or (not domain and "/" in values["group"]):
+                    parts = values["group"].split("/", 1)
+                    if len(parts) != 2 or not all(parts):
+                        raise ValueError(f"{path}:{number}: expected region/source in group, got {values['group']!r}")
+                    if domain and domain != parts[0]:
+                        raise ValueError(f"{path}:{number}: domain conflicts with group region prefix")
+                    domain = parts[0]
+                domain = domain or c.get("default_domain", "")
+                if not domain:
+                    raise ValueError(f"{path}:{number}: supply domain column, default_domain, or domain_from_group_prefix")
+                assigned = values["split"]
+                if split_source == "manifest" and assigned not in {"train", "val", "test"}:
+                    raise ValueError(f"{path}:{number}: manifest split must be train, val or test")
+                if split_source == "generated" and assigned:
+                    raise ValueError("Existing split assignments found: use split_source: manifest to preserve them")
+                records.append(Record(values["id"], str((path.parent / values["image"]).resolve()),
+                                      str((path.parent / values["mask"]).resolve()), values["group"], domain, assigned))
     else:
         if not c["independent_images"]:
             raise ValueError("Provide group CSV or explicitly assert independent_images: true")
@@ -115,6 +146,17 @@ def split_records(records, ratios, seed):
     if any(len({r.domain for r in rows}) > 1 for rows in groups.values()):
         raise ValueError("A group spans domains; merge related domains before splitting")
     result = {k: [] for k in ("train", "val", "test")}
+    if any(r.split for r in records):
+        if any(r.split not in result for r in records):
+            raise ValueError("All records need valid split assignments when preserving manifest splits")
+        if any(len({r.split for r in rows}) != 1 for rows in groups.values()):
+            raise ValueError("Scene/group leakage: a group occurs in multiple manifest splits")
+        for r in records:
+            result[r.split].append(r)
+        for domain in sorted({r.domain for r in records}):
+            if any(not any(r.domain == domain for r in rows) for rows in result.values()):
+                raise ValueError(f"Domain {domain} lacks a train, val or test partition")
+        return result
     rng = random.Random(seed)
     for domain in sorted({r.domain for r in records}):
         units = [rows for _, rows in sorted(groups.items()) if rows[0].domain == domain]
@@ -136,7 +178,9 @@ def split_records(records, ratios, seed):
 
 def save_splits(path, splits, cfg):
     save_json(path, {"seed": cfg["seed"], "requested_ratios": cfg["dataset"]["split"],
-                     "ratio_unit": "independent groups within each domain",
+                     "source": "manifest" if any(r.split for rows in splits.values() for r in rows) else "generated",
+                     "ratio_unit": "independent groups within each domain; existing manifest assignments preserved",
+                     "counts": {k: {"images": len(rows), "groups": len({r.group for r in rows})} for k, rows in splits.items()},
                      "partitions": {k: [dict(asdict(r), image_sha256=file_hash(r.image), mask_sha256=file_hash(r.mask))
                                         for r in rows] for k, rows in splits.items()}})
 
