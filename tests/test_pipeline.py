@@ -29,7 +29,9 @@ def tiny_config(tmp_path):
         Image.fromarray(mask).save(mask_root/f"{i}.png")
     cfg["dataset"].update(images=str(image_root), masks=str(mask_root), independent_images=True, size=32)
     cfg["model"].update(encoder="synthetic", grid=2, quantum_chunk=4, cache_dir=None, pca_tokens=64)
-    cfg["runtime"].update(device="cpu", amp=False, num_workers=0)
+    # Keep synthetic test budgets independent of user-tuned training defaults.
+    cfg["runtime"].update(device="cpu", amp=False, num_workers=0,
+                          batch_size=2, eval_batch_size=2, accumulation=1)
     cfg["training"].update(epochs=1, max_updates_per_domain=1)
     cfg["evaluation"].update(plots=1, sampled_pixels=128, tsne_points=32)
     cfg["continual"].update(replay_mib=.02)
