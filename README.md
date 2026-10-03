@@ -4,6 +4,24 @@ Config-driven RGB semantic segmentation with a **frozen original SAM ViT-B image
 
 The executable pipeline supports training, held-out testing, byte-capped continual replay, classical adapter controls, and detailed reports. Accuracy gains and A100 throughput are **unmeasured** until real-data experiments run. This is an engineering implementation, not a completed scientific validation of the reviewed research protocol. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
 
+## A100 notebook: 20-epoch regularized experiment
+
+Open [Run_Regularized_Project_A100.ipynb](Run_Regularized_Project_A100.ipynb) in Jupyter on the server.
+It defaults to `/raid/workspace/QCL_Final_Boss`, runs 20 epochs **per region**, enables paired image/mask flips,
+and lowers the decoder/classical and quantum learning rates to `0.0003` and `0.003`.
+SAM feature caching is disabled for correct online augmentation, which increases runtime.
+This is an exploratory configuration motivated by a training/validation gap, not a verified score improvement.
+
+```bash
+cd /raid/workspace/QCL_Final_Boss
+git pull --ff-only origin main
+```
+
+Stop the old training process before starting a fresh notebook run on the same GPU. Keep its outputs for comparison.
+Check the Settings cell and run the notebook from the top. See [server instructions](docs/A100_NOTEBOOK.md)
+for dataset paths, exclusions, checkpoint behavior, and validation/test selection.
+The original [full-budget notebook](Run_Full_Project_A100.ipynb) is retained as a baseline.
+
 ## Setup
 
 Use Python 3.10+ in a fresh environment. On the A100 machine, install a CUDA-compatible PyTorch/torchvision pair using the [official PyTorch installer](https://pytorch.org/get-started/locally/), then:

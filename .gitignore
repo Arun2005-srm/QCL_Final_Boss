@@ -1,4 +1,9 @@
 .venv/
+.venv-a100/
+.ipynb_checkpoints/
+notebook_logs/
+configs/generated/
+*_reports.zip
 __pycache__/
 .pytest_cache/
 *.pyc
